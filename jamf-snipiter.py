@@ -8,22 +8,22 @@ import sys
 from api import jamfpro, snipeit
 from api.shared import load_configuration
 
-logging.basicConfig(
-    filename="/var/log/mdmsnipiter/jamfsnipiter.log", level=logging.DEBUG
-)
-logger = logging.getLogger(__name__)
-
-
 config_path = os.path.join(sys.path[0], "jamf-snipiter.conf")
 config_template = [
     {"key": "create_snipeit_users", "default": True},
     {"key": "checkout_rename", "default": True},
+    {"key": "log_path", "default": "/var/log/mdmsnipiter/jamfsnipiter.log"},
+    {"key": "log_level", "default": "WARN"},
     {"key": "category_id"},
     {"key": "manufacturer_id"},
     {"key": "status_id"},
 ]
 config = load_configuration(config_path, config_template)
 
+logging.basicConfig(
+    filename=config['log_path'], level=config['log_level']
+)
+logger = logging.getLogger(__name__)
 
 def get_all_jamf_computers():
     """Fetch all computer records from Jamf"""

@@ -2,6 +2,8 @@
     "checkout_rename": true,
     "create_snipeit_users": true,
     "category_id": 1,
+    "log_path": "/var/log/mdmsnipiter/jamfsnipiter.log",
+    "log_level": "INFO",
     "manufacturer_id": 1,
     "status_id": 2
 }
