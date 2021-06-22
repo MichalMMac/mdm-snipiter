@@ -76,6 +76,80 @@ def get_single_item_from_api(url):
     return None
 
 
+def find_asset(serial):
+    """Try to find Snipe-IT asset by its serial number"""
+
+    logger.debug(f"Searching for asset with serial number: {serial}")
+    return get_single_item_from_api(f"{api_endpoint}/hardware/byserial/{serial}")
+
+
+def find_model(identifier):
+    """Try to find Snipe-IT model by its identifier"""
+
+    logger.debug(f"Searching for model with identifier: {identifier}")
+    return get_single_item_from_api(f"{api_endpoint}/models?search={identifier}")
+
+
+def find_user(username):
+    """Try to find Snipe-IT user by its username"""
+
+    logger.debug(f"Searching for user with username: {username}")
+    return get_single_item_from_api(f"{api_endpoint}/users?search={username}")
+
+
+def modify_item(url, payload, operation, item_name):
+    """Use API to create or modify target item"""
+    try:
+        response = contact_api(url, headers, payload=payload, operation=operation)
+    except APIException as ex:
+        raise SnipeITAPIException(ex)
+
+    if response.get("status") == "success":
+        return response["payload"]
+
+    messages = response.get("messages", "Unknown error")
+    logger.error(f"API returned error response: {messages}")
+    raise SnipeITAPIException(f"Unable to create item {item_name}")
+
+
+def create_item(url, payload, item_name):
+    """POST wrapper function for modify_item"""
+    return modify_item(url, payload, "POST", item_name)
+
+
+def patch_item(url, payload, item_name):
+    """PATCH wrapper function for modify_item"""
+    return modify_item(url, payload, "PATCH", item_name)
+
+
+def create_asset(payload):
+    """Create new asset"""
+    asset_name = payload["name"]
+    logger.info(f"Creating new asset {asset_name}")
+    return create_item(f"{api_endpoint}/hardware", payload, asset_name)
+
+
+def patch_asset(asset_id, payload):
+    """Patch existing new asset"""
+    logger.info(f"Patching asset {asset_id}")
+    return patch_item(f"{api_endpoint}/hardware/{asset_id}", payload, asset_id)
+
+
+def create_model(payload):
+    """Create new model"""
+    model_name = payload["name"]
+    logger.info(f"Creating new model {model_name}")
+    return create_item(f"{api_endpoint}/models", payload, model_name)
+
+
+def create_user(payload):
+    """Create new user"""
+    user_name = payload["username"]
+
+    logger.info(f"Creating new user {payload['username']}")
+    return create_item(f"{api_endpoint}/users", payload, user_name)
+
+
 def checkout(asset_id, user_id, asset_name=None):
     """Assign user to the asset"""
 
