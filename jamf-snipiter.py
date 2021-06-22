@@ -1,23 +1,28 @@
 #!/opt/local/bin/python3
 
 import logging
+import os
 import secrets
 import sys
 
 from api import jamfpro, snipeit
+from api.shared import load_configuration
 
 logging.basicConfig(
-    filename="/var/log/mdmsnipiter/jamfsnipiter.log", level=logging.INFO
+    filename="/var/log/mdmsnipiter/jamfsnipiter.log", level=logging.DEBUG
 )
 logger = logging.getLogger(__name__)
 
 
-# TODO
-create_snipeit_users = True
-checkout_rename = True
-manufacturer_id = 1
-category_id = 3
-status_id = 2
+config_path = os.path.join(sys.path[0], "jamf-snipiter.conf")
+config_template = [
+    {"key": "create_snipeit_users", "default": True},
+    {"key": "checkout_rename", "default": True},
+    {"key": "category_id"},
+    {"key": "manufacturer_id"},
+    {"key": "status_id"},
+]
+config = load_configuration(config_path, config_template)
 
 
 def get_all_jamf_computers():
@@ -41,7 +46,7 @@ def create_snipeit_asset(jamf_asset, snipeit_model_id):
     """Create computer asset within Snipe-IT"""
     payload = {}
 
-    payload["status_id"] = status_id
+    payload["status_id"] = config["status_id"]
     payload["model_id"] = snipeit_model_id
     payload["name"] = jamf_asset["general"]["serial_number"]
 
@@ -78,8 +83,8 @@ def create_snipeit_model(jamf_computer):
         payload["name"] = jamf_computer["hardware"]["model"]
     else:
         payload["name"] = jamf_computer["hardware"]["model_identifier"]
-    payload["category_id"] = category_id
-    payload["manufacturer_id"] = manufacturer_id
+    payload["category_id"] = config["category_id"]
+    payload["manufacturer_id"] = config["manufacturer_id"]
 
     return snipeit.create_model(payload)
 
@@ -136,7 +141,7 @@ def verify_snipeit_user(jamf_computer):
     username = jamf_computer["location"]["username"]
 
     user = snipeit.find_user(username)
-    if user is None and create_snipeit_users:
+    if user is None and config["create_snipeit_users"]:
         user = create_snipeit_user(jamf_computer)
 
     return user
@@ -145,7 +150,7 @@ def verify_snipeit_user(jamf_computer):
 def get_asset_checkout_name(jamf_computer, snipeit_user):
     """Determine new asset name which would be used during checkout"""
 
-    if checkout_rename:
+    if config["checkout_rename"]:
         nicename = snipeit_user["name"]
         nicename += " "
         if jamf_computer["hardware"]["model_identifier"]:
@@ -222,6 +227,7 @@ def sync_computers():
 def main():
     """Main"""
     sync_computers()
+
 
 if __name__ == "__main__":
     main()

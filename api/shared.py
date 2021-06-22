@@ -37,3 +37,28 @@ def contact_api(
         time.sleep(sleeptimer)
 
     raise APIException("Unable to get valid response from API")
+
+
+def load_configuration(filepath, options_template):
+    """Load configuration from JSON config file"""
+
+    preferences = {}
+    try:
+        with open(filepath) as jfile:
+            config = json.load(jfile)
+
+            for option in options_template:
+                o_key = option["key"]
+                preferences[o_key] = config.get(o_key)
+                if not preferences[o_key]:
+                    if option.get("default"):
+                        preferences[o_key] = option.get("default")
+                    else:
+                        raise Exception(f"Configuration file is missing '{o_key}'")
+
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Configuration file '{filepath}' is missing")
+    except Exception:
+        raise Exception(f"Error reading '{filepath}' configuration file")
+
+    return preferences

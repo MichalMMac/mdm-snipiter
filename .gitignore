@@ -8,3 +8,4 @@ __pycache__/
 # Project
 api/snipeit.conf
 api/jamfpro.conf
+jamf-snipiter.conf

@@ -4,12 +4,11 @@ Snipe-IT API module
 Module to communicate with defined Snipe-IT instance.
 Requires snipeit.conf JSON file within the same directory.
 """
-import json
 import logging
 import os
 import sys
 
-from .shared import APIException, contact_api
+from .shared import APIException, contact_api, load_configuration
 
 logger = logging.getLogger(__name__)
 
@@ -18,37 +17,18 @@ class SnipeITAPIException(Exception):
     """Expection for the Snipe-IT API module"""
 
 
-# Configure SnipeIT API module
-try:
-    with open(os.path.join(sys.path[0], "api", "snipeit.conf")) as jfile:
-        config = json.load(jfile)
+config_path = os.path.join(sys.path[0], "api", "snipeit.conf")
+config_template = [{"key": "attempts", "default": 3}, {"key": "token"}, {"key": "url"}]
+config = load_configuration(config_path, config_template)
 
-        snipeit_url = config.get("url")
-        if not snipeit_url:
-            raise SnipeITAPIException("Configuration file is missing 'url'")
-
-        token = config.get("token")
-        if not token:
-            raise SnipeITAPIException("Configuration file is missing 'token'")
-
-        attempts = config.get("attempts", 5)
-
-except SnipeITAPIException:
-    raise
-except FileNotFoundError:
-    raise SnipeITAPIException("Configuration file 'snipeit.conf' is missing")
-except Exception:
-    raise SnipeITAPIException("Error reading 'snipeit.conf' configuration file")
-
-
-api_endpoint = f"{snipeit_url}/api/v1"
-headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
+api_endpoint = f"{config['url']}/api/v1"
+headers = {"Accept": "application/json", "Authorization": f"Bearer {config['token']}"}
 
 
 def get_data_from_api(url):
     """Return rows of date from API"""
     try:
-        data = contact_api(url, headers)
+        data = contact_api(url, headers, attempts=config["attempts"])
     except APIException as ex:
         raise SnipeITAPIException(ex)
     rows = data.get("rows", None)
@@ -100,7 +80,13 @@ def find_user(username):
 def modify_item(url, payload, operation, item_name):
     """Use API to create or modify target item"""
     try:
-        response = contact_api(url, headers, payload=payload, operation=operation)
+        response = contact_api(
+            url,
+            headers,
+            payload=payload,
+            operation=operation,
+            attempts=config["attempts"],
+        )
     except APIException as ex:
         raise SnipeITAPIException(ex)
 
@@ -161,7 +147,9 @@ def checkout(asset_id, user_id, asset_name=None):
         payload["name"] = asset_name
 
     try:
-        response = contact_api(url, headers, payload=payload, operation="POST")
+        response = contact_api(
+            url, headers, payload=payload, operation="POST", attempts=config["attempts"]
+        )
     except APIException as ex:
         raise SnipeITAPIException(ex)
 
@@ -181,7 +169,9 @@ def checkin(asset_id):
     url = f"{api_endpoint}/hardware/{asset_id}/checkin"
 
     try:
-        response = contact_api(url, headers, operation="POST")
+        response = contact_api(
+            url, headers, operation="POST", attempts=config["attempts"]
+        )
     except APIException as ex:
         raise SnipeITAPIException(ex)
 

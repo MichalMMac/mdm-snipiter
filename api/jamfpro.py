@@ -6,12 +6,11 @@ Requires jamfpro.conf JSON file within the same directory.
 """
 
 import base64
-import json
 import logging
 import os
 import sys
 
-from .shared import APIException, contact_api
+from .shared import APIException, contact_api, load_configuration
 
 logger = logging.getLogger(__name__)
 
@@ -20,35 +19,19 @@ class JamfProAPIException(Exception):
     """Expection for the Jamf Pro API module"""
 
 
-# Configure Jamf Pro API module
-try:
-    with open(os.path.join(sys.path[0], "api", "jamfpro.conf")) as jfile:
-        config = json.load(jfile)
+config_path = os.path.join(sys.path[0], "api", "jamfpro.conf")
+config_template = [
+    {"key": "attempts", "default": 3},
+    {"key": "url"},
+    {"key": "username"},
+    {"key": "password"},
+]
+config = load_configuration(config_path, config_template)
 
-        jamfpro_url = config.get("url")
-        if not jamfpro_url:
-            raise JamfProAPIException("Configuration file is missing 'url'")
-
-        username = config.get("username")
-        if not username:
-            raise JamfProAPIException("Configuration file is missing 'username'")
-
-        password = config.get("password")
-        if not password:
-            raise JamfProAPIException("Configuration file is missing 'password'")
-
-        attempts = config.get("attempts", 5)
-
-except JamfProAPIException:
-    raise
-except FileNotFoundError:
-    raise JamfProAPIException("Configuration file 'jamfpro.conf' is missing")
-except Exception:
-    raise JamfProAPIException("Error reading 'jamfpro.conf' configuration file")
-
-
-classic_api_endpoint = f"{jamfpro_url}/JSSResource"
-base64_auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+classic_api_endpoint = f"{config['url']}/JSSResource"
+base64_auth = base64.b64encode(
+    f"{config['username']}:{config['password']}".encode()
+).decode()
 classic_headers = {
     "Accept": "application/json",
     "Content-Type": "application/json",
@@ -74,7 +57,9 @@ classic_headers = {
 def get_data_from_classic_api(url):
     """Get generic data object from Jamf Classic API"""
     try:
-        data = contact_api(url, classic_headers, notfound404=True)
+        data = contact_api(
+            url, classic_headers, notfound404=True, attempts=config["attempts"]
+        )
     except APIException as ex:
         raise JamfProAPIException(ex)
 
