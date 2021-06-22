@@ -1,0 +1,5 @@
+{
+    "attempts": 3,
+    "token": "<API token>",
+    "url": "https://jamfpro.somedomain.tld"
+}
