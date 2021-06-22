@@ -20,10 +20,9 @@ config_template = [
 ]
 config = load_configuration(config_path, config_template)
 
-logging.basicConfig(
-    filename=config['log_path'], level=config['log_level']
-)
+logging.basicConfig(filename=config["log_path"], level=config["log_level"])
 logger = logging.getLogger(__name__)
+
 
 def get_all_jamf_computers():
     """Fetch all computer records from Jamf"""

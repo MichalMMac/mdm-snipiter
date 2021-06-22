@@ -53,6 +53,7 @@ def get_single_item_from_api(url):
         else:
             return rows[0]
 
+    logger.debug("No item found")
     return None
 
 
