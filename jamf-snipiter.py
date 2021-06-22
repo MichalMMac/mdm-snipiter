@@ -50,14 +50,14 @@ def create_snipeit_asset(jamf_asset, snipeit_model_id):
     payload["model_id"] = snipeit_model_id
     payload["name"] = jamf_asset["general"]["serial_number"]
 
-    asset_id = snipeit.create_asset(payload)
+    asset = snipeit.create_asset(payload)
 
     payload = {}
     payload["serial"] = jamf_asset["general"]["serial_number"]
 
-    snipeit.patch_asset(asset_id, payload)
+    snipeit.patch_asset(asset["id"], payload)
 
-    return asset_id
+    return asset
 
 
 def verify_snipeit_asset(jamf_asset, snipeit_model_id):
@@ -98,11 +98,9 @@ def verify_snipeit_model(jamf_computer):
 
     model = snipeit.find_model(model_identifier)
     if model is None:
-        model_id = create_snipeit_model(jamf_computer)
-    else:
-        model_id = model.get("id")
+        model = create_snipeit_model(jamf_computer)
 
-    return model_id
+    return model
 
 
 def create_snipeit_user(jamf_computer):
@@ -177,14 +175,16 @@ def sync_computers():
             )
             continue
 
-        snipeit_model_id = verify_snipeit_model(jamf_computer)
-        if snipeit_model_id is None:
+        snipeit_model = verify_snipeit_model(jamf_computer)
+        if snipeit_model is None:
             logging.error(f"Unable to obtain Snipe-IT model identifier ({jid})")
             continue
 
-        logging.debug(f"Found Snipe-IT model id: {snipeit_model_id} ({jid})")
+        logging.debug(f"Found Snipe-IT model id: {snipeit_model['id']} ({jid})")
 
-        snipeit_computer_asset = verify_snipeit_asset(jamf_computer, snipeit_model_id)
+        snipeit_computer_asset = verify_snipeit_asset(
+            jamf_computer, snipeit_model["id"]
+        )
         if snipeit_computer_asset is None:
             logging.error(f"Unable to obtain Snipe-IT computer identifier ({jid})")
             continue
